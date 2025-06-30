@@ -1,0 +1,45 @@
+name: Fast Android Build
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+  workflow_dispatch:
+
+jobs:
+  build:
+    name: Build APK (Fast)
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+      - name: 📦 Checkout Code
+        uses: actions/checkout@v4
+
+      - name: ☕ Setup JDK 17 with Gradle cache
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: 17
+          cache: 'gradle'
+
+      - name: ⚡ Enable Gradle Build Cache
+        run: |
+          echo "org.gradle.caching=true" >> gradle.properties
+          echo "org.gradle.parallel=true" >> gradle.properties
+          echo "org.gradle.daemon=false" >> gradle.properties
+
+      - name: 🛠️ Make gradlew executable
+        run: chmod +x ./gradlew
+
+      - name: 🚀 Build APK (assembleRelease)
+        run: ./gradlew assembleRelease --no-daemon --stacktrace --info
+
+      - name: 📤 Upload APK as artifact
+        if: success()
+        uses: actions/upload-artifact@v4
+        with:
+          name: release-apk
+          path: |
+            app/build/outputs/apk/release/*.apk
